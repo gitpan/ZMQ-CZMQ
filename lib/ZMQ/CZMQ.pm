@@ -4,7 +4,7 @@ use Exporter 'import';
 use XSLoader;
 our $VERSION;
 BEGIN {
-    $VERSION = '1.01';
+    $VERSION = '1.02';
     XSLoader::load(__PACKAGE__, $VERSION);
 }
 
@@ -21,6 +21,7 @@ our %EXPORT_OK = (
         zsocket_destroy
         zsocket_bind
         zsocket_connect
+        zsocket_poll
     ) ],
     zstr => [ qw(
         zstr_send
@@ -37,6 +38,7 @@ our %EXPORT_OK = (
         zmsg_decode
         zmsg_destroy
         zmsg_dup
+        zmsg_dump
         zmsg_encode
         zmsg_first
         zmsg_last

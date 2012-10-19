@@ -4,7 +4,7 @@
       "unknown"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Module::Install version 1.04, CPAN::Meta::Converter version 2.112150",
+   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "unknown"
    ],
@@ -15,9 +15,8 @@
    "name" : "ZMQ-CZMQ",
    "no_index" : {
       "directory" : [
-         "inc",
          "t",
-         "xt"
+         "inc"
       ]
    },
    "prereqs" : {
@@ -31,19 +30,16 @@
       },
       "configure" : {
          "requires" : {
-            "Devel::CheckLib" : "0.4",
-            "Devel::PPPort" : "3.19",
-            "ExtUtils::MakeMaker" : "6.36",
-            "ExtUtils::ParseXS" : "2.21"
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "runtime" : {
          "requires" : {
             "XSLoader" : "0.02",
-            "ZMQ::Constants" : 0
+            "ZMQ::Constants" : "0"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "1.01"
+   "version" : "1.02"
 }
