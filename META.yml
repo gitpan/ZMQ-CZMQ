@@ -25,4 +25,4 @@ no_index:
 requires:
   XSLoader: 0.02
   ZMQ::Constants: 0
-version: 1.02
+version: 1.03
