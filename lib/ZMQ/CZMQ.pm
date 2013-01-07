@@ -1,368 +1,104 @@
 package ZMQ::CZMQ;
 use strict;
-use Exporter 'import';
-use XSLoader;
-our $VERSION;
+our $VERSION = '1.04';
+our $BACKEND;
 BEGIN {
-    $VERSION = '1.03';
-    XSLoader::load(__PACKAGE__, $VERSION);
-}
-
-our %EXPORT_OK = (
-    zctx => [ qw(
-        zctx_new
-        zctx_destroy
-        zctx_set_iothreads
-        zctx_set_linger
-        zctx_interrupted
-    ) ],
-    zsocket => [ qw(
-        zsocket_new
-        zsocket_destroy
-        zsocket_bind
-        zsocket_connect
-        zsocket_poll
-    ) ],
-    zstr => [ qw(
-        zstr_send
-        zstr_recv
-        zstr_recv_nowait
-        zstr_sendm
-        zstr_sendf
-    ) ],
-    zmsg => [ qw(
-        zmsg_add
-        zmsg_addmem
-        zmsg_addstr
-        zmsg_content_size
-        zmsg_decode
-        zmsg_destroy
-        zmsg_dup
-        zmsg_dump
-        zmsg_encode
-        zmsg_first
-        zmsg_last
-        zmsg_load
-        zmsg_new
-        zmsg_next
-        zmsg_pop
-        zmsg_popstr
-        zmsg_push
-        zmsg_pushmem
-        zmsg_pushstr
-        zmsg_recv
-        zmsg_remove
-        zmsg_save
-        zmsg_send
-        zmsg_size
-        zmsg_unwrap
-        zmsg_wrap
-    ) ],
-    zframe => [ qw(
-        zframe_data
-        zframe_destroy
-        zframe_dup
-        zframe_eq
-        zframe_more
-        zframe_new
-        zframe_print
-        zframe_recv
-        zframe_recv_nowait
-        zframe_reset
-        zframe_send
-        zframe_size
-        zframe_strdup
-        zframe_streq
-        zframe_strhex
-    ) ],
-    zsockopt => [ qw(
-        zsockopt_affinity
-        zsockopt_backlog
-        zsockopt_events
-        zsockopt_fd
-        zsockopt_hwm
-        zsockopt_linger
-        zsockopt_maxmsgsize
-        zsockopt_mcast_loop
-        zsockopt_rate
-        zsockopt_rcvbuf
-        zsockopt_rcvhwm
-        zsockopt_rcvmore
-        zsockopt_reconnect_ivl
-        zsockopt_reconnect_ivl_max
-        zsockopt_recovery_ivl
-        zsockopt_recovery_ivl_msec
-        zsockopt_set_affinity
-        zsockopt_set_backlog
-        zsockopt_set_hwm
-        zsockopt_set_identity
-        zsockopt_set_linger
-        zsockopt_set_maxmsgsize
-        zsockopt_set_mcast_loop
-        zsockopt_set_rate
-        zsockopt_set_rcvbuf
-        zsockopt_set_rcvhwm
-        zsockopt_set_reconnect_ivl
-        zsockopt_set_reconnect_ivl_max
-        zsockopt_set_recovery_ivl
-        zsockopt_set_recovery_ivl_msec
-        zsockopt_set_sndbuf
-        zsockopt_set_sndhwm
-        zsockopt_set_subscribe
-        zsockopt_set_swap
-        zsockopt_set_unsubscribe
-        zsockopt_sndbuf
-        zsockopt_sndhwm
-        zsockopt_swap
-        zsockopt_type
-    ) ],
-);
-our @EXPORT = map { @$_ } values %EXPORT_OK;
-
-sub zstr_sendf {
-    my ($socket, $fmt, @args) = @_;
-    zstr_send( $socket, sprintf $fmt, @args );
-}
-
-sub zsocket_bind {
-    my ($socket, $address, @args) = @_;
-    if (@args) {
-        $address = sprintf $address, @args;
+    $BACKEND ||= $ENV{PERL_ZMQ_CZMQ_BACKEND};
+    if ( $BACKEND ) {
+        eval "require $BACKEND";
+        if ($@) {
+            die $@;
+        }
+    } else {
+        foreach my $lib ( qw(ZMQ::LibCZMQ1) ) {
+            eval "require $lib";
+            if ($@) {
+                next;
+            }
+            $BACKEND = $lib;
+        }
     }
-    _zsocket_bind( $socket, $address );
-}
 
-sub zsocket_connect {
-    my ($socket, $address, @args) = @_;
-    if (@args) {
-        $address = sprintf $address, @args;
+    if (! $BACKEND) {
+        die "Could not find a suitable backend for ZMQ::CZMQ";
     }
-    _zsocket_connect( $socket, $address );
 }
 
-sub zmsg_pushstr {
-    my ($msg, $fmt, @args) = @_;
-    my $buf = sprintf $fmt, @args;
-    zmsg_pushmem( $msg, $buf, length $buf );
+sub call {
+    my $funcname = shift;
+    no strict 'refs';
+    goto &{"${BACKEND}::$funcname"};
 }
 
-sub zmsg_addstr {
-    my ($msg, $fmt, @args) = @_;
-    my $buf = sprintf $fmt, @args;
-    zmsg_addmem( $msg, $buf, length $buf );
-}
+use ZMQ::CZMQ::Zctx;
+use ZMQ::CZMQ::Zframe;
+use ZMQ::CZMQ::Zmsg;
+use ZMQ::CZMQ::Zsocket;
 
 1;
 
+__END__
+
 =head1 NAME
 
-ZMQ::CZMQ - Wrapper Around czmq high level ZMQ API
+ZMQ::CZMQ - Perl-ish wrapper for libczmq
 
 =head1 SYNOPSIS
 
     use ZMQ::CZMQ;
-
-    my $ctx = zctx_new();
-    zctx_destroy( $ctx );
-    zctx_set_iothreads( $ctx, $iothreads );
-    zctx_set_linger( $ctx, $linger );
+    use ZMQ::Constants ...;
 
 =head1 DESCRIPTION
 
-This is a wrapper around libczmq. 
+ZMQ::CZMQ is a Perl-ish wrapper for libczmq. It uses ZMQ::LibCZMQ1 for
+its backend (when/if libczmq 2.x comes out, we may change to use
+ZMQ::LibCZMQ2 or whatever)
+
+If you want a one-to-one direct mapping to libzmq, then you should be using ZMQ::LibCZMQ1
+
+If you think your code will be used from another program that also uses libczmq,
+you might want to consider using the ZMQ::LibCZMQ* modules. This is because you
+can't write "truly" portable code using this high level interface (libczmq's
+API change rather drastically between versions). Personally, I'd recommend
+only using this module for your one-shot scripts, and use ZMQ::LibCZMQ* for
+all other uses. YMMV.
 
 =head1 FUNCTIONS
 
-=head2 zctx_destroy
+=head2 ZMQ::CZMQ::call($funcname, @args)
 
-=head2 zctx_interrupted
+Calls C<$funcname> via whichever backend loaded by ZMQ.pm. 
+If C<@args> is passed, they are passed directly to the target function.
 
-=head2 zctx_new
+=head1 UNSUPPORTED
 
-=head2 zctx_set_iothreads
+=head2 zclock_*, zfile_*, zhash_*, zlist_*, zloop_*, zmutex_*, zsys_*, and zthread_*
 
-=head2 zctx_set_linger
+Functions in this area doesn't make sense to be made OO/Perlish. Either
+use them directly via C<ZMQ::LibCZMQ*::> or C<ZMQ::CZMQ::call()>
 
-=head2 zframe_data
+If you don't agree and would like to add them, patches are welcome.
 
-=head2 zframe_destroy
+=head1 SEE ALSO
 
-=head2 zframe_dup
+L<http://zeromq.org>
 
-=head2 zframe_eq
+L<http://github.com/lestrrat/p5-ZMQ>
 
-=head2 zframe_more
+L<ZMQ::LibCZMQ1>, L<ZMQ::Constants>
 
-=head2 zframe_new
+=head1 AUTHOR
 
-=head2 zframe_print
+Daisuke Maki C<< <daisuke@endeworks.jp> >>
 
-=head2 zframe_recv
+=head1 COPYRIGHT AND LICENSE
 
-=head2 zframe_recv_nowait
+The ZMQ module is
 
-=head2 zframe_reset
+Copyright (C) 2013 by Daisuke Maki
 
-=head2 zframe_send
-
-=head2 zframe_size
-
-=head2 zframe_strdup
-
-=head2 zframe_streq
-
-=head2 zframe_strhex
-
-=head2 zmsg_add
-
-=head2 zmsg_addmem
-
-=head2 zmsg_addstr
-
-=head2 zmsg_content_size
-
-=head2 zmsg_decode
-
-=head2 zmsg_destroy
-
-=head2 zmsg_dump
-
-=head2 zmsg_dup
-
-=head2 zmsg_encode
-
-=head2 zmsg_first
-
-=head2 zmsg_last
-
-=head2 zmsg_load
-
-=head2 zmsg_new
-
-=head2 zmsg_next
-
-=head2 zmsg_pop
-
-=head2 zmsg_popstr
-
-=head2 zmsg_push
-
-=head2 zmsg_pushmem
-
-=head2 zmsg_pushstr
-
-=head2 zmsg_recv
-
-=head2 zmsg_remove
-
-=head2 zmsg_save
-
-=head2 zmsg_send
-
-=head2 zmsg_size
-
-=head2 zmsg_unwrap
-
-=head2 zmsg_wrap
-
-=head2 zsocket_bind
-
-=head2 zsocket_connect
-
-=head2 zsocket_destroy
-
-=head2 zsocket_new
-
-=head2 zsocket_poll
-
-=head2 zsocket_type_str
-
-=head2 zsockopt_affinity
-
-=head2 zsockopt_backlog
-
-=head2 zsockopt_events
-
-=head2 zsockopt_fd
-
-=head2 zsockopt_hwm
-
-=head2 zsockopt_linger
-
-=head2 zsockopt_maxmsgsize
-
-=head2 zsockopt_mcast_loop
-
-=head2 zsockopt_rate
-
-=head2 zsockopt_rcvbuf
-
-=head2 zsockopt_rcvhwm
-
-=head2 zsockopt_rcvmore
-
-=head2 zsockopt_reconnect_ivl
-
-=head2 zsockopt_reconnect_ivl_max
-
-=head2 zsockopt_recovery_ivl
-
-=head2 zsockopt_recovery_ivl_msec
-
-=head2 zsockopt_set_affinity
-
-=head2 zsockopt_set_backlog
-
-=head2 zsockopt_set_hwm
-
-=head2 zsockopt_set_identity
-
-=head2 zsockopt_set_linger
-
-=head2 zsockopt_set_maxmsgsize
-
-=head2 zsockopt_set_mcast_loop
-
-=head2 zsockopt_set_rate
-
-=head2 zsockopt_set_rcvbuf
-
-=head2 zsockopt_set_rcvhwm
-
-=head2 zsockopt_set_reconnect_ivl
-
-=head2 zsockopt_set_reconnect_ivl_max
-
-=head2 zsockopt_set_recovery_ivl
-
-=head2 zsockopt_set_recovery_ivl_msec
-
-=head2 zsockopt_set_sndbuf
-
-=head2 zsockopt_set_sndhwm
-
-=head2 zsockopt_set_subscribe
-
-=head2 zsockopt_set_swap
-
-=head2 zsockopt_set_unsubscribe
-
-=head2 zsockopt_sndbuf
-
-=head2 zsockopt_sndhwm
-
-=head2 zsockopt_swap
-
-=head2 zsockopt_type
-
-=head2 zstr_recv
-
-=head2 zstr_recv_nowait
-
-=head2 zstr_send
-
-=head2 zstr_sendf
-
-=head2 zstr_sendm
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
 
 =cut

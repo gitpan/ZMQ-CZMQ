@@ -1,18 +1,15 @@
 ---
-abstract: 'Wrapper Around czmq high level ZMQ API'
+abstract: 'Perl-ish wrapper for libczmq'
+author:
+  - 'Daisuke Maki C<< <daisuke@endeworks.jp> >>'
 build_requires:
-  Devel::CheckLib: 0.4
-  Devel::PPPort: 3.19
   ExtUtils::MakeMaker: 6.36
 configure_requires:
-  Devel::CheckLib: 0.4
-  Devel::PPPort: 3.19
   ExtUtils::MakeMaker: 6.36
-  ExtUtils::ParseXS: 2.21
 distribution_type: module
 dynamic_config: 1
 generated_by: 'Module::Install version 1.06'
-license: unknown
+license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
@@ -23,6 +20,7 @@ no_index:
     - t
     - xt
 requires:
-  XSLoader: 0.02
-  ZMQ::Constants: 0
-version: 1.03
+  ZMQ::LibCZMQ1: 0
+resources:
+  license: http://dev.perl.org/licenses/
+version: 1.04

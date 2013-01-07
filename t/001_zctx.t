@@ -1,13 +1,24 @@
 use strict;
 use Test::More;
 
-use_ok "ZMQ::CZMQ";
+BEGIN {
+    use_ok("ZMQ::CZMQ");
+    use_ok("ZMQ::Constants", "ZMQ_REQ");
+}
 
-subtest 'basic' => sub {
-    my $ctx = zctx_new();
-    ok $ctx, "new context";
-    isa_ok $ctx, "ZMQ::CZMQ::zctx";
-    zctx_destroy( $ctx );
-};
+{
+    my $ctx = ZMQ::CZMQ::Zctx->new;
+    if (ok $ctx) {
+        isa_ok $ctx, "ZMQ::CZMQ::Zctx";
+    }
+}
+
+{
+    my $ctx = ZMQ::CZMQ::Zctx->new;
+    my $sock = $ctx->socket(ZMQ_REQ);
+    if (ok $sock) {
+        $sock->destroy($ctx);
+    }
+}
 
 done_testing;
